@@ -9,15 +9,3 @@ B3 : Xử lý phần rắn chạy :
 		3.3.1 : ăn được thì sẽ tạo thêm 1 đuôi và không cần bỏ. Y
 		3.3.2 : không ăn được thì sẽ bỏ 1 đốt ở đuôi. Y
 	3.4 : Nếu rắn ăn được thì update lại tọa độ của food, tránh trường hợp tọa độ của food trùng vơi tọa độ của đốt rắn . Y
-+ Cải thiện những thứ cmt
-+ Tạm dừng
-+ Thay đổi kích thước console
-+ Nhập và hiện tên người chơi
-+ Lưu lại điểm số sau mỗi lần chơi
-+ Hiện top 5 người chơi điểm cao nhất
-+ hiện 1 quả big
-	- mỗi 5 quả nhỏ
-	- chiếm 3 * 3
-	- hiện 3s
-	- to nhỏ theo thời gian 3*3, 2 * 2, 1 * 1
-+ Thêm âm thanh
