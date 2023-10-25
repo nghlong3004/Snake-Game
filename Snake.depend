@@ -1,0 +1,15 @@
+# depslib dependency file v1.0
+1698155969 source:d:\long\snake\main.cpp
+	<iostream>
+	<vector>
+	<windows.h>
+	<conio.h>
+	<unistd.h>
+
+1698226738 source:c:\users\hh1305\long\snake\main.cpp
+	<iostream>
+	<vector>
+	<windows.h>
+	<conio.h>
+	<unistd.h>
+

@@ -1,2 +1,2 @@
 # Snake-Game
-Cài đặt game rắn săn mồi 
+Cài đặt game rắn săn mồi   
