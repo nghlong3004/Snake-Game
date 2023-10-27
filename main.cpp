@@ -6,20 +6,24 @@
 #include <ctime>
 #include <deque>
 #include <fstream>
+#include <cmath>
 
-
+int sizeDelete = 8; // chieu dai de xoa di vi tri cac top cu
+int coorTopX = 0, coorTopY = 0; // toa do cua top nguoi choi
 const int maxHeight = 1000, maxWidth = 1000;
 int height = 20, width = 80;
-int constX = 0, constY = 0, coorScoreX = 0, coorScoreY = 0;
+int constX = 0, constY = 0; // toa do cua vien
+int coorScoreX = 0, coorScoreY = 0;
 int foodCoordinatesX, foodCoordinatesY;
-int x, y, score = 0;
-int indexy[1000 + 1][1000 + 1];
+int x, y, score = 0, n = 0;
+int indexy[1000 + 1][1000 + 1], idPlayer = 0;
 bool isEnd;
 char direction;
 bool flag = 0;
-std::string name;
+std::string name = "";
 std::deque <int> snakeBodyX, snakeBodyY;
 std::vector <std::pair <std::string, int > > top;
+std::vector <int> arrDelete;
 int tempX, tempY;
 COORD curPos(HANDLE hConsoleOutput)
 {
@@ -41,6 +45,22 @@ void gotoxy(int coordinatesX, int coordinatesY)
     oxy.Y = coordinatesY + constY + 1;
     SetConsoleCursorPosition(GetStdHandle(STD_OUTPUT_HANDLE), oxy);
 }
+void inTop()
+{
+    for(int i = 0; i < std::min(n , 5); ++i)
+    {
+        gotoxy(width + 2, i);
+        if((int)top[i].first.size() + (int)log10(top[i].second) != arrDelete[i])
+        {
+            for(int j = 0; j <= 8 + arrDelete[i] ; ++j)
+                std::cout << " ";
+            arrDelete[i] = (int)top[i].first.size() + (int)log10(top[i].second);
+        }
+        gotoxy(width + 2, i);
+        std::cout << "Top." << i + 1 << " " << top[i].first << ": " << top[i].second << '\n';
+    }
+    gotoxy(x, y);
+}
 void setColor(int backg, int col)
 {
     HANDLE hconsole = GetStdHandle(STD_OUTPUT_HANDLE);
@@ -60,6 +80,7 @@ void inFood()
     }
     gotoxy(foodCoordinatesX, foodCoordinatesY);
     std::cout << '$';
+    gotoxy(x,y);
 }
 void printDirSnakeHead()
 {
@@ -80,18 +101,20 @@ void printDirSnakeHead()
 }
 void initAPIGame()
 {
-    std::ifstream in("dataSnakeGame.txt");
-    if(in.is_open())
-    {
-        std::string nameTop;
-        int scoreTop;
-        while(in >> nameTop >> scoreTop)
-        {
-            top.push_back(make_pair(nameTop, scoreTop));
-        }
-    }
     std::cout << "Name : "; std::cin >> name;
-
+    int flagPlayer = 1;
+    for(int i = 0; i < n; ++i)
+    {
+        if(top[i].first == name)
+            flagPlayer = 0, idPlayer = n;
+    }
+    if(flagPlayer)
+    {
+        top.push_back(make_pair(name, score));
+        arrDelete.push_back((int)name.size());
+        ++n;
+        idPlayer = n;
+    }
     std::cout << "Score : ";
     coorScoreX = curPos(GetStdHandle(STD_OUTPUT_HANDLE)).X;
     coorScoreY = curPos(GetStdHandle(STD_OUTPUT_HANDLE)).Y;
@@ -113,6 +136,7 @@ void initAPIGame()
     for(int i = width + 1; ~i ; --i)
         std::cout << '-';
     std::cout << "\nPress b to pause.";
+    inTop();
 }
 void initialization()
 {
@@ -124,12 +148,25 @@ void initialization()
     height = std::min(height, maxHeight);
     width = std::min(width, maxWidth);
     system("cls");
+    std::ifstream in("dataSnakeGame.txt");
+    if(in.is_open())
+    {
+        std::string nameTop;
+        int scoreTop;
+        while(in >> nameTop >> scoreTop)
+        {
+            top.push_back(make_pair(nameTop, scoreTop));
+            arrDelete.push_back((int)nameTop.size() + (int)log10(std::max(1, scoreTop)));
+        }
+    }
+    n = (int)top.size();
+    in.close();
     x = width / 2;
     y = height / 2;
     tempX = x;
     tempY = y;
     isEnd = 0;
-    direction = 't';
+    direction = 'b';
     initAPIGame();
     inFood();
     snakeBodyX.push_back(x);
@@ -139,6 +176,17 @@ void initialization()
     cur.bVisible = 0;
     cur.dwSize = 10;
     SetConsoleCursorInfo(GetStdHandle(STD_OUTPUT_HANDLE), &cur);
+}
+void sortTop()
+{
+    for(int i = 0; i < n; ++i)
+    {
+        for(int j = i + 1; j < n; ++j)
+            if(top[i].second < top[j].second)
+                std::swap(top[i], top[j]);
+        if(top[i].first == name)
+            idPlayer = i + 1;
+    }
 }
 void switchDir(char key)
 {
@@ -210,6 +258,14 @@ void check()
         std::cout << "Name : " << name;
         std::cout << "\nScore : " << score;
         std::cout << "\nThe End.";
+        std::ofstream out("dataSnakeGame.txt");
+        if(out.is_open())
+        {
+            sortTop();
+            for(int i = 0; i < std::min(5, n); ++i)
+                out << top[i].first << " " << top[i].second << '\n';
+            out.close();
+        }
         sleep(1);
     }
 }
@@ -227,6 +283,9 @@ void inGame()
     if(x == foodCoordinatesX && y == foodCoordinatesY)
     {
         score += 10;
+        top[idPlayer - 1].second = std::max(score, top[idPlayer - 1].second);
+        sortTop();
+        inTop();
         gotoxy(coorScoreX - constX - 1, coorScoreY - constY - 1);
         std::cout << score;
         inFood();
@@ -255,8 +314,6 @@ void inGame()
 
 int main()
 {
-    //setColor(0, 8);
-    //SetConsoleOutputCP(65001);
     initialization();
     while(!isEnd)
     {
