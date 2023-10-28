@@ -1,17 +1,18 @@
+#pragma comment(lib, "winmm.lib")
 #include <iostream>
 #include <vector>
-#include <windows.h>
+#include <Windows.h>
 #include <conio.h>
-#include <unistd.h>
 #include <ctime>
 #include <deque>
 #include <fstream>
 #include <cmath>
+#include <Mmsystem.h>
 
 int sizeDelete = 8; // chieu dai de xoa di vi tri cac top cu
 int coorTopX = 0, coorTopY = 0; // toa do cua top nguoi choi
 const int maxHeight = 1000, maxWidth = 1000;
-int height = 20, width = 80;
+int height = 40, width = 80;
 int constX = 0, constY = 0; // toa do cua vien
 int coorScoreX = 0, coorScoreY = 0;
 int foodCoordinatesX, foodCoordinatesY;
@@ -20,6 +21,9 @@ int indexy[1000 + 1][1000 + 1], idPlayer = 0;
 bool isEnd;
 char direction;
 bool flag = 0;
+int mode = 1, v = 150;
+int idFood = 0, idFoodBig = -1, sumFood = 0;
+int coorFoodBigX = 0, coorFoodBigY = 0;
 std::string name = "";
 std::deque <int> snakeBodyX, snakeBodyY;
 std::vector <std::pair <std::string, int > > top;
@@ -61,6 +65,85 @@ void inTop()
     }
     gotoxy(x, y);
 }
+void inFoodBig1()
+{
+    gotoxy(coorFoodBigX - 2, coorFoodBigY - 2);
+    std::cout << " ";
+    gotoxy(coorFoodBigX, coorFoodBigY - 2);
+    std::cout << " ";
+    gotoxy(coorFoodBigX, coorFoodBigY);
+    std::cout << " ";
+    gotoxy(coorFoodBigX - 2, coorFoodBigY);
+    std::cout << " ";
+    gotoxy(x, y);
+}
+bool checkFoodBig1()
+{
+    if(x == coorFoodBigX - 2)
+    {
+        if(y == coorFoodBigY || y == coorFoodBigY - 2)
+            return 0;
+    }
+    if(x == coorFoodBigX)
+    {
+        if(y == coorFoodBigY || y == coorFoodBigY - 2)
+            return 0;
+    }
+    return 1;
+}
+void inFoodBig2()
+{
+    gotoxy(coorFoodBigX - 1, coorFoodBigY - 2);
+    std::cout << " ";
+    gotoxy(coorFoodBigX - 1, coorFoodBigY);
+    std::cout << " ";
+    gotoxy(coorFoodBigX, coorFoodBigY - 1);
+    std::cout << " ";
+    gotoxy(coorFoodBigX - 2, coorFoodBigY - 1);
+    std::cout << " ";
+    gotoxy(x, y);
+}
+bool checkFoodBig2()
+{
+    if(x == coorFoodBigX - 1)
+    {
+        if(y == coorFoodBigY || y == coorFoodBigY - 2)
+            return 0;
+    }
+    if(y == coorFoodBigY - 1)
+    {
+        if(x == coorFoodBigX || x == coorFoodBigX - 2)
+            return 0;
+    }
+    return 1;
+}
+void inFoodBig3()
+{
+    gotoxy(coorFoodBigX - 1, coorFoodBigY - 1);
+    std::cout << " ";
+    gotoxy(x, y);
+}
+void inFoodBig()
+{
+    srand((unsigned int) time(NULL));
+    coorFoodBigX = rand() % (width - 3) + 3, coorFoodBigY = rand() % (height - 3) + 3;
+    for(int i = coorFoodBigX - 2,j = coorFoodBigY - 2; j <= coorFoodBigY; ++j)
+    {
+        gotoxy(i, j);
+        for(int k = i; k <= i + 2; ++k)
+            std::cout << "O";
+    }
+}
+void setFoodBig()
+{
+    idFoodBig = -1;
+    sumFood = 0;
+}
+void playSoundFoodBig()
+{
+    // link free sound : https://tiengdong.com/nhac-chuong-mario-an-tien
+    PlaySound(TEXT("D:\\LONG\\Snake-Game\\Nhac-chuong-game-over-www_tiengdong_com.wav"), NULL, SND_ASYNC );
+}
 void setColor(int backg, int col)
 {
     HANDLE hconsole = GetStdHandle(STD_OUTPUT_HANDLE);
@@ -73,7 +156,7 @@ void inFood()
     foodCoordinatesY = rand() % height;
     foodCoordinatesX = rand() % width;
     int i = 0;
-    while(i++ <= width * height && indexy[foodCoordinatesX][foodCoordinatesY] == 1)
+    while(indexy[foodCoordinatesX][foodCoordinatesY] == 1)
     {
         foodCoordinatesY = rand() % height;
         foodCoordinatesX = rand() % width;
@@ -140,11 +223,31 @@ void initAPIGame()
 }
 void initialization()
 {
-    std::cout << "Enter the length and height for the game.\n";
-    std::cout << "Height : ";
-    std::cin >> height;
-    std::cout << "Width : ";
-    std::cin >> width;
+    std::cout << "Select mode : \n" << "1.Easy\n" << "2.Normal\n" << "3.Hard.\n";
+    std::cin >> mode;
+    switch(mode)
+    {
+    case 1:
+        v = 200;
+        height = 24;
+        width = 80;
+        break;
+    case 2:
+        v = 150;
+        height = 20;
+        width = 60;
+        break;
+    case 3:
+        v = 100;
+        height = 10;
+        width = 40;
+        break;
+    default:
+        v = 150;
+        height = 80;
+        width = 120;
+        break;
+    }
     height = std::min(height, maxHeight);
     width = std::min(width, maxWidth);
     system("cls");
@@ -266,7 +369,7 @@ void check()
                 out << top[i].first << " " << top[i].second << '\n';
             out.close();
         }
-        sleep(1);
+        Sleep(1000);
     }
 }
 
@@ -282,12 +385,21 @@ void inGame()
     snakeBodyY.push_front(y);
     if(x == foodCoordinatesX && y == foodCoordinatesY)
     {
+        // link free sound : https://tiengdong.com/Am-thanh-nhat-tien-xu-trong-game
+        PlaySound(TEXT("D:\\LONG\\Snake-Game\\Am-thanh-nhat-tien-xu-trong-game-www_tiengdong_com.wav"), NULL, SND_ASYNC );
         score += 10;
+        idFood = (idFood + 1) % 5 + 1;
         top[idPlayer - 1].second = std::max(score, top[idPlayer - 1].second);
         sortTop();
         inTop();
         gotoxy(coorScoreX - constX - 1, coorScoreY - constY - 1);
         std::cout << score;
+        gotoxy(x, y);
+        if(idFood > 0 && idFood % 5 == 0)
+        {
+            inFoodBig();
+            idFoodBig = 0;
+        }
         inFood();
     }
     else
@@ -299,9 +411,89 @@ void inGame()
         gotoxy(xRight, yRight);
         std::cout << ' ';
     }
+    if(idFoodBig >= 0)
+    {
+        sumFood += v;
+        for(int i = coorFoodBigX - 2,j = coorFoodBigY - 2; j <= coorFoodBigY; ++j)
+        {
+            for(int k = i; k <= i + 2; ++k)
+            {
+                if(idFoodBig == 0)
+                {
+                    if(x == k && y == j)
+                    {
+                        score += 30;
+                        setFoodBig();
+                        playSoundFoodBig();
+                        inFoodBig1();
+                        inFoodBig2();
+                        inFoodBig3();
+                        top[idPlayer - 1].second = std::max(score, top[idPlayer - 1].second);
+                        sortTop();
+                        inTop();
+                        gotoxy(coorScoreX - constX - 1, coorScoreY - constY - 1);
+                        std::cout << score;
+                        gotoxy(x, y);
+                    }
+                }
+                else if(idFoodBig == 1)
+                {
+                    if(x == k && y == j && checkFoodBig1())
+                    {
+                        score += 20;
+                        setFoodBig();
+                        playSoundFoodBig();
+                        inFoodBig2();
+                        inFoodBig3();
+                        top[idPlayer - 1].second = std::max(score, top[idPlayer - 1].second);
+                        sortTop();
+                        inTop();
+                        gotoxy(coorScoreX - constX - 1, coorScoreY - constY - 1);
+                        std::cout << score;
+                        gotoxy(x, y);
+                    }
+                }
+                else
+                {
+                    if(x == k && y == j && checkFoodBig2())
+                    {
+                        score += 10;
+                        setFoodBig();
+                        playSoundFoodBig();
+                        inFoodBig3();
+                        top[idPlayer - 1].second = std::max(score, top[idPlayer - 1].second);
+                        sortTop();
+                        inTop();
+                        gotoxy(coorScoreX - constX - 1, coorScoreY - constY - 1);
+                        std::cout << score;
+                        gotoxy(x, y);
+                    }
+                }
+            }
+        }
+    }
+    if(sumFood / 1000 == 1 && idFoodBig == 0)
+    {
+        ++idFoodBig;
+        inFoodBig1();
+    }
+    if(sumFood / 1000 == 2 && idFoodBig == 1)
+    {
+        ++idFoodBig;
+        inFoodBig2();
+    }
+    if(sumFood / 1000 == 3 && idFoodBig)
+    {
+        setFoodBig();
+        inFoodBig3();
+    }
     indexy[x][y] += 1;
     if(indexy[x][y] > 1)
+    {
+        // link free sound : https://tiengdong.com/nhac-chuong-game-over
+        PlaySound(TEXT("D:\\LONG\\Snake-Game\\Nhac-chuong-game-over-www_tiengdong_com.wav"), NULL, SND_FILENAME );
         isEnd = 1;
+    }
     gotoxy(x,y);
     printDirSnakeHead();
     if(snakeBodyX.size() > 1)
@@ -319,7 +511,7 @@ int main()
     {
         upInput();
         inGame();
-        sleep(1);
+        Sleep(v);
     }
 
     return 0;
