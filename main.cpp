@@ -1,34 +1,193 @@
+#pragma comment(lib, "winmm.lib")
 #include <iostream>
 #include <vector>
-#include <windows.h>
+#include <Windows.h>
 #include <conio.h>
-#include <unistd.h>
+#include <ctime>
+#include <deque>
+#include <fstream>
+#include <cmath>
+#include <Mmsystem.h>
 
-const int height = 20, width = 80;
+int sizeDelete = 8; // chieu dai de xoa di vi tri cac top cu
+int coorTopX = 0, coorTopY = 0; // toa do cua top nguoi choi
+const int maxHeight = 1000, maxWidth = 1000;
+int height = 40, width = 80;
+int constX = 0, constY = 0; // toa do cua vien
+int coorScoreX = 0, coorScoreY = 0;
 int foodCoordinatesX, foodCoordinatesY;
-std::vector <int> snakeBodyX(1, 40), snakeBodyY(1, 10);
-int x, y, score = 0;
+int x, y, score = 0, n = 0;
+int indexy[1000 + 1][1000 + 1], idPlayer = 0;
 bool isEnd;
 char direction;
-bool flag = 1;
-void setColor(int backg, int col)
+bool flag = 0;
+int mode = 1, v = 150;
+int idFood = 0, idFoodBig = -1, sumFood = 0;
+int coorFoodBigX = 0, coorFoodBigY = 0;
+std::string name = "";
+std::deque <int> snakeBodyX, snakeBodyY;
+std::vector <std::pair <std::string, int > > top;
+std::vector <int> arrDelete;
+int tempX, tempY;
+COORD curPos(HANDLE hConsoleOutput)
 {
-    HANDLE hconsole = GetStdHandle(STD_OUTPUT_HANDLE);
-    int c_b = backg * 16 + col;
-    SetConsoleTextAttribute(hconsole, c_b);
+    CONSOLE_SCREEN_BUFFER_INFO cbsi;
+    if (GetConsoleScreenBufferInfo(hConsoleOutput, &cbsi))
+    {
+        return cbsi.dwCursorPosition;
+    }
+    else
+    {
+        COORD invalid = { 0, 0 };
+        return invalid;
+    }
+}
+void gotoxy(int coordinatesX, int coordinatesY)
+{
+    COORD oxy;
+    oxy.X = coordinatesX + constX + 1;
+    oxy.Y = coordinatesY + constY + 1;
+    SetConsoleCursorPosition(GetStdHandle(STD_OUTPUT_HANDLE), oxy);
+}
+void inTop()
+{
+    for(int i = 0; i < std::min(n , 5); ++i)
+    {
+        if((int)top[i].first.size() + (int)log10(top[i].second) != arrDelete[i])
+        {
+            gotoxy(width + 5, i - 1);
+            for(int j = 0; j <= 8 + arrDelete[i] ; ++j)
+                std::cout << " ";
+            arrDelete[i] = (int)top[i].first.size() + (int)log10(top[i].second);
+        }
+        gotoxy(width + 5, i - 1);
+        std::cout << "Top." << i + 1 << " " << top[i].first << ": " << top[i].second << '\n';
+    }
+    gotoxy(x, y);
+}
+void inFoodBig1()
+{
+    gotoxy(coorFoodBigX - 2, coorFoodBigY - 2);
+    std::cout << " ";
+    gotoxy(coorFoodBigX, coorFoodBigY - 2);
+    std::cout << " ";
+    gotoxy(coorFoodBigX, coorFoodBigY);
+    std::cout << " ";
+    gotoxy(coorFoodBigX - 2, coorFoodBigY);
+    std::cout << " ";
+    gotoxy(x, y);
+}
+bool checkFoodBig1()
+{
+    if(x == coorFoodBigX - 2)
+    {
+        if(y == coorFoodBigY || y == coorFoodBigY - 2)
+            return 0;
+    }
+    if(x == coorFoodBigX)
+    {
+        if(y == coorFoodBigY || y == coorFoodBigY - 2)
+            return 0;
+    }
+    return 1;
+}
+void inFoodBig2()
+{
+    gotoxy(coorFoodBigX - 1, coorFoodBigY - 2);
+    std::cout << " ";
+    gotoxy(coorFoodBigX - 1, coorFoodBigY);
+    std::cout << " ";
+    gotoxy(coorFoodBigX, coorFoodBigY - 1);
+    std::cout << " ";
+    gotoxy(coorFoodBigX - 2, coorFoodBigY - 1);
+    std::cout << " ";
+    gotoxy(x, y);
+}
+bool checkFoodBig2()
+{
+    if(x == coorFoodBigX - 1)
+    {
+        if(y == coorFoodBigY || y == coorFoodBigY - 2)
+            return 0;
+    }
+    if(y == coorFoodBigY - 1)
+    {
+        if(x == coorFoodBigX || x == coorFoodBigX - 2)
+            return 0;
+    }
+    return 1;
+}
+void inFoodBig3()
+{
+    gotoxy(coorFoodBigX - 1, coorFoodBigY - 1);
+    std::cout << " ";
+    gotoxy(x, y);
+}
+bool checkFoodBig0()
+{
+    for(int i = coorFoodBigX - 2,j = coorFoodBigY - 2; j <= coorFoodBigY; ++j)
+    {
+        for(int k = i; k <= i + 2; ++k)
+            if(k == foodCoordinatesX && j == coorFoodBigY || indexy[k][j] == 1)
+                return 1;
+    }
+    return 0;
+}
+bool checkFoodBig()
+{
+    for(int i = coorFoodBigX - 2,j = coorFoodBigY - 2; j <= coorFoodBigY; ++j)
+    {
+        for(int k = i; k <= i + 2; ++k)
+            if(k == foodCoordinatesX && j == coorFoodBigY)
+                return 1;
+    }
+    return 0;
+}
+void inFoodBig()
+{
+    srand((unsigned int) time(NULL));
+    coorFoodBigX = rand() % (width - 3) + 3, coorFoodBigY = rand() % (height - 3) + 3;
+    int i = 0;
+    while(checkFoodBig0() && i++ < 100)
+    {
+        coorFoodBigX = rand() % (width - 3) + 3, coorFoodBigY = rand() % (height - 3) + 3;
+    }
+    if(i >= 100)
+        return;
+    for(int i = coorFoodBigX - 2,j = coorFoodBigY - 2; j <= coorFoodBigY; ++j)
+    {
+        gotoxy(i, j);
+        for(int k = i; k <= i + 2; ++k)
+            std::cout << "O";
+    }
+}
+void setFoodBig()
+{
+    idFoodBig = -1;
+    sumFood = 0;
+}
+void playSoundFoodBig()
+{
+    // link free sound : https://tiengdong.com/nhac-chuong-mario-an-tien
+    PlaySound(TEXT("D:\\LONG\\Snake-Game\\Nhac-chuong-mario-an-tien-www_tiengdong_com.wav"), NULL, SND_ASYNC );
+}
+void printFood()
+{
+    gotoxy(foodCoordinatesX, foodCoordinatesY);
+    std::cout << '$';
 }
 void inFood()
 {
+    srand((unsigned int) time(NULL));
     foodCoordinatesY = rand() % height;
     foodCoordinatesX = rand() % width;
-}
-void initialization()
-{
-    x = 40;
-    y = 10;
-    inFood();
-    isEnd = 0;
-    direction = 'd';
+    int i = 0;
+    while(indexy[foodCoordinatesX][foodCoordinatesY] == 1 || checkFoodBig())
+    {
+        foodCoordinatesY = rand() % height;
+        foodCoordinatesX = rand() % width;
+    }
+    printFood();
 }
 void printDirSnakeHead()
 {
@@ -47,53 +206,124 @@ void printDirSnakeHead()
         std::cout << 'v';
     }
 }
-void printGame()
+void initAPIGame()
 {
-    std::cout << "Score : " << score << '\n';
-    // ~ la gi
-    for(int i = width + 1; ~i ; --i)
-        std::cout << '-';
-    std::cout << '\n';
-    for(int i = height + 1; ~i; --i)
+    std::cout << "Name : "; std::cin >> name;
+    int flagPlayer = 1;
+    for(int i = 0; i < n; ++i)
     {
-        std::cout << "|";
-        for(int j = 1; j <= width; ++j)
-        {
-            if(i == y && j == x)
-            {
-                printDirSnakeHead();
-            }
-            else if(j == foodCoordinatesX && i == foodCoordinatesY)
-                std::cout << "$";
-            else
-            {
-                // check xem co hien than ran khong
-                bool y = 1;
-                // cai tien
-                for(int k = snakeBodyX.size() - 1; k > 0 && y; --k)
-                {
-                    if(snakeBodyX[k] == j && snakeBodyY[k] == i)
-                    {
-                        y = 0;
-                        if(k != snakeBodyX.size() - 1)
-                            std::cout << "o";
-                        else
-                            std::cout << 'o';
-                    }
-                }
-                if(y)
-                    std::cout << " ";
-            }
-        }
-        std::cout << "|\n";
+        if(top[i].first == name)
+            flagPlayer = 0, idPlayer = n;
     }
-    for(int i = width + 1; ~i ; --i)
-        std::cout << '-';
-    CONSOLE_CURSOR_INFO cursorInfo;
-    cursorInfo.dwSize = 10;
-    cursorInfo.bVisible = 0;
-    SetConsoleCursorPosition(GetStdHandle(STD_OUTPUT_HANDLE), {0, 0});
-    SetConsoleCursorInfo(GetStdHandle(STD_OUTPUT_HANDLE), &cursorInfo);
+    if(flagPlayer)
+    {
+        top.push_back(make_pair(name, score));
+        arrDelete.push_back((int)name.size());
+        ++n;
+        idPlayer = n;
+    }
+    std::cout << "Score : ";
+    coorScoreX = curPos(GetStdHandle(STD_OUTPUT_HANDLE)).X;
+    coorScoreY = curPos(GetStdHandle(STD_OUTPUT_HANDLE)).Y;
+    std::cout << score << '\n';
+    constX = curPos(GetStdHandle(STD_OUTPUT_HANDLE)).X;
+    constY = curPos(GetStdHandle(STD_OUTPUT_HANDLE)).Y;
+    for(int i = 1; i <= width + 1; ++i)
+        std::cout << char(196);
+    std::cout << '\n';
+    for(int i = 0; i <= height; ++i)
+    {
+        gotoxy(-1, i);
+        std::cout << char(179);
+    }
+    for(int i = 0; i <= height; ++i)
+    {
+        gotoxy(width, i);
+        std::cout << char(179);
+    }
+    gotoxy(0, height);
+    for(int i = 1; i <= width; ++i)
+        std::cout << char(196);
+    gotoxy(-1 , -1);
+    std::cout << char(218);
+    gotoxy(-1, height);
+    std::cout << char(192);
+    gotoxy(width, -1);
+    std::cout << char(191);
+    gotoxy(width, height);
+    std::cout << char(217);
+    std::cout << "\nPress b to pause.";
+    inTop();
+}
+void initialization()
+{
+    std::cout << "Select mode : \n" << "1.Easy\n" << "2.Normal\n" << "3.Hard.\n";
+    std::cin >> mode;
+    switch(mode)
+    {
+    case 1:
+        v = 200;
+        height = 28;
+        width = 80;
+        break;
+    case 2:
+        v = 150;
+        height = 24;
+        width = 80;
+        break;
+    case 3:
+        v = 100;
+        height = 20;
+        width = 80;
+        break;
+    default:
+        v = 150;
+        height = 24;
+        width = 80;
+        break;
+    }
+    height = std::min(height, maxHeight);
+    width = std::min(width, maxWidth);
+    system("cls");
+    std::ifstream in("dataSnakeGame.txt");
+    if(in.is_open())
+    {
+        std::string nameTop;
+        int scoreTop;
+        while(in >> nameTop >> scoreTop)
+        {
+            top.push_back(make_pair(nameTop, scoreTop));
+            arrDelete.push_back((int)nameTop.size() + (int)log10(std::max(1, scoreTop)));
+        }
+    }
+    n = (int)top.size();
+    in.close();
+    x = width / 2;
+    y = height / 2;
+    tempX = x;
+    tempY = y;
+    isEnd = 0;
+    direction = 'b';
+    initAPIGame();
+    inFood();
+    snakeBodyX.push_back(x);
+    snakeBodyY.push_back(y);
+    indexy[x][y] = 1;
+    CONSOLE_CURSOR_INFO cur;
+    cur.bVisible = 0;
+    cur.dwSize = 10;
+    SetConsoleCursorInfo(GetStdHandle(STD_OUTPUT_HANDLE), &cur);
+}
+void sortTop()
+{
+    for(int i = 0; i < n; ++i)
+    {
+        for(int j = i + 1; j < n; ++j)
+            if(top[i].second < top[j].second)
+                std::swap(top[i], top[j]);
+        if(top[i].first == name)
+            idPlayer = i + 1;
+    }
 }
 void switchDir(char key)
 {
@@ -108,12 +338,15 @@ void switchDir(char key)
         direction = 'd';
         break;
     case 'w':
-        ++y;
+        --y;
         direction = 'w';
         break;
     case 's':
-        --y;
+        ++y;
         direction = 's';
+        break;
+    case 'b':
+        direction = 'b';
         break;
     case 'x':
         isEnd = 1;
@@ -128,10 +361,10 @@ void switchDir(char key)
                 ++x;
                 break;
             case 'w':
-                ++y;
+                --y;
                 break;
             case 's':
-                --y;
+                ++y;
                 break;
         }
         break;
@@ -143,10 +376,10 @@ void upInput()
     {
         char oldDirection = direction;
         switchDir(_getch());
-        if(snakeBodyX.size() > 1 && snakeBodyX[1] == x && snakeBodyY[1] == y)
+        if(snakeBodyX.size() > 1 && tempX == x && tempY == y && direction != 'b')
         {
-            x = snakeBodyX[0];
-            y = snakeBodyY[0];
+            x = snakeBodyX.front();
+            y = snakeBodyY.front();
             direction = oldDirection;
             switchDir(direction);
         }
@@ -159,60 +392,162 @@ void check()
     if(isEnd)
     {
         system("cls");
-        std::cout << "Score : " << score;
+        std::cout << "Name : " << name;
+        std::cout << "\nScore : " << score;
         std::cout << "\nThe End.";
-        sleep(1);
+        std::ofstream out("dataSnakeGame.txt");
+        if(out.is_open())
+        {
+            sortTop();
+            for(int i = 0; i < std::min(5, n); ++i)
+                out << top[i].first << " " << top[i].second << '\n';
+            out.close();
+        }
+        Sleep(1000);
     }
 }
 
 void inGame()
 {
-    flag = 1;
-    if(x == snakeBodyX[0] && y == snakeBodyY[0])
-        return flag = 0, void();
-    int n = snakeBodyX.size() - 1;
-    x = (x + width + 2) % (width + 2);
-    y = (y + height + 2) % (height + 2);
-    // cai tien xuong O(1);
-    int snakeX = snakeBodyX[n], snakeY = snakeBodyY[n];
-    for(int i = n; i > 0 ; --i)
-    {
-        snakeBodyX[i] = snakeBodyX[i-1];
-        snakeBodyY[i] = snakeBodyY[i-1];
-    }
-    snakeBodyX[0] = x;
-    snakeBodyY[0] = y;
+    if(direction == 'b')
+        return;
+    x = (x + width) % (width);
+    y = (y + height) % (height);
+    tempX = snakeBodyX.front();
+    tempY = snakeBodyY.front();
+    snakeBodyX.push_front(x);
+    snakeBodyY.push_front(y);
     if(x == foodCoordinatesX && y == foodCoordinatesY)
     {
-        snakeBodyX.push_back(snakeX);
-        snakeBodyY.push_back(snakeY);
+        // link free sound : https://tiengdong.com/Am-thanh-nhat-tien-xu-trong-game
+        PlaySound(TEXT("D:\\LONG\\Snake-Game\\Am-thanh-nhat-tien-xu-trong-game-www_tiengdong_com.wav"), NULL, SND_ASYNC );
         score += 10;
+        idFood = (idFood + 1) % 5 + 1;
+        top[idPlayer - 1].second = std::max(score, top[idPlayer - 1].second);
+        sortTop();
+        inTop();
+        gotoxy(coorScoreX - constX - 1, coorScoreY - constY - 1);
+        std::cout << score;
+        gotoxy(x, y);
+        if(idFood > 0 && idFood % 5 == 0)
+        {
+            inFoodBig();
+            idFoodBig = 0;
+        }
         inFood();
     }
-    for(int i = 1; i < snakeBodyX.size(); ++i)
-        if(x == snakeBodyX[i] && y == snakeBodyY[i])
-            return isEnd = 1, void();
-}
-void inPrintGame()
-{
-    if(flag)
+    else
     {
-        printGame();
-        check();
+        int xRight = snakeBodyX.back(), yRight = snakeBodyY.back();
+        indexy[xRight][yRight] = 0;
+        snakeBodyX.pop_back();
+        snakeBodyY.pop_back();
+        gotoxy(xRight, yRight);
+        std::cout << ' ';
     }
+    if(idFoodBig >= 0)
+    {
+        sumFood += v;
+        for(int i = coorFoodBigX - 2,j = coorFoodBigY - 2; j <= coorFoodBigY; ++j)
+        {
+            for(int k = i; k <= i + 2; ++k)
+            {
+                if(idFoodBig == 0)
+                {
+                    if(x == k && y == j)
+                    {
+                        score += 30;
+                        setFoodBig();
+                        playSoundFoodBig();
+                        inFoodBig1();
+                        inFoodBig2();
+                        inFoodBig3();
+                        top[idPlayer - 1].second = std::max(score, top[idPlayer - 1].second);
+                        sortTop();
+                        inTop();
+                        gotoxy(coorScoreX - constX - 1, coorScoreY - constY - 1);
+                        std::cout << score;
+                        gotoxy(x, y);
+                    }
+                }
+                else if(idFoodBig == 1)
+                {
+                    if(x == k && y == j && checkFoodBig1())
+                    {
+                        score += 20;
+                        setFoodBig();
+                        playSoundFoodBig();
+                        inFoodBig2();
+                        inFoodBig3();
+                        top[idPlayer - 1].second = std::max(score, top[idPlayer - 1].second);
+                        sortTop();
+                        inTop();
+                        gotoxy(coorScoreX - constX - 1, coorScoreY - constY - 1);
+                        std::cout << score;
+                        gotoxy(x, y);
+                    }
+                }
+                else
+                {
+                    if(x == k && y == j && checkFoodBig2())
+                    {
+                        score += 10;
+                        setFoodBig();
+                        playSoundFoodBig();
+                        inFoodBig3();
+                        top[idPlayer - 1].second = std::max(score, top[idPlayer - 1].second);
+                        sortTop();
+                        inTop();
+                        gotoxy(coorScoreX - constX - 1, coorScoreY - constY - 1);
+                        std::cout << score;
+                        gotoxy(x, y);
+                    }
+                }
+            }
+        }
+    }
+    if(sumFood / 1000 == 1 && idFoodBig == 0)
+    {
+        ++idFoodBig;
+        inFoodBig1();
+    }
+    if(sumFood / 1000 == 2 && idFoodBig == 1)
+    {
+        ++idFoodBig;
+        inFoodBig2();
+    }
+    if(sumFood / 1000 == 3 && idFoodBig)
+    {
+        setFoodBig();
+        inFoodBig3();
+    }
+    indexy[x][y] += 1;
+    if(indexy[x][y] > 1)
+    {
+        // link free sound : https://tiengdong.com/nhac-chuong-game-over
+        PlaySound(TEXT("D:\\LONG\\Snake-Game\\Nhac-chuong-game-over-www_tiengdong_com.wav"), NULL, SND_FILENAME );
+        isEnd = 1;
+    }
+    if(snakeBodyX.size() > 1)
+    {
+        gotoxy(tempX, tempY);
+        std::cout << char(15);
+    }
+    printFood();
+    gotoxy(x,y);
+    printDirSnakeHead();
+    check();
 }
 
 int main()
 {
-    //setColor(0, 8);
-    //SetConsoleOutputCP(65001);
     initialization();
-    printGame();
     while(!isEnd)
     {
         upInput();
         inGame();
-        inPrintGame();
+        Sleep(v);
     }
+
     return 0;
 }

@@ -1,11 +1,2 @@
-B1 : hình thành khung giao diện. Y
-B2 : hiển thị snake và food khi mới vào. Y
-B3 : Xử lý phần rắn chạy :
-	3.1 : thay đổi tọa độ rắn hiện tại . Y
-	3.2 : check xem rắn có chạm chướng ngại vật không :
-		3.2.1 : vượt biên hay không . Y
-		3.2.2 : cắn vào thân hay không. Y
-	3.3 : check xem rắn có ăn được food hay không :
-		3.3.1 : ăn được thì sẽ tạo thêm 1 đuôi và không cần bỏ. Y
-		3.3.2 : không ăn được thì sẽ bỏ 1 đốt ở đuôi. Y
-	3.4 : Nếu rắn ăn được thì update lại tọa độ của food, tránh trường hợp tọa độ của food trùng vơi tọa độ của đốt rắn . Y
+Name : Long
+Score : 150
